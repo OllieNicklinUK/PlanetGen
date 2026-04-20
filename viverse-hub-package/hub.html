@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="3D Project Hub — Walk through a lobby and explore all projects via portals" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌀</text></svg>">
+    <title>Project Hub — 3D Lobby</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        overflow: hidden;
+        background: #000;
+        font-family: 'Inter', sans-serif;
+        color: #111;
+      }
+
+      canvas#hub-canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* ── Crosshair ── */
+      #crosshair {
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 24px; height: 24px;
+        pointer-events: none; z-index: 10;
+        display: none;
+      }
+      #crosshair::before, #crosshair::after {
+        content: ''; position: absolute;
+        background: rgba(0,0,0,0.7);
+        border-radius: 1px;
+      }
+      #crosshair::before {
+        width: 2px; height: 100%;
+        left: 50%; transform: translateX(-50%);
+      }
+      #crosshair::after {
+        width: 100%; height: 2px;
+        top: 50%; transform: translateY(-50%);
+      }
+
+      /* ── Fly mode indicator ── */
+      #fly-mode {
+        position: fixed; top: 16px; left: 50%;
+        transform: translateX(-50%);
+        color: #222; font-size: 13px;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: bold; letter-spacing: 3px;
+        text-shadow: 0 0 8px rgba(255,255,255,0.8);
+        pointer-events: none; z-index: 10;
+      }
+
+      /* ── Portal/Action HUD ── */
+      #portal-hud {
+        position: fixed; bottom: 80px; left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        pointer-events: none; z-index: 50;
+        opacity: 0; transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-align: center;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 24px 48px;
+        border-radius: 20px;
+        border: 1px solid rgba(0,0,0,0.1);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.3);
+      }
+      #portal-hud.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+      #portal-hud .name {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 24px; font-weight: 700;
+        letter-spacing: 2px;
+        color: #111;
+        text-shadow: none;
+      }
+      #portal-hud .hint {
+        font-size: 14px; color: rgba(0,0,0,0.8);
+        margin-top: 6px; letter-spacing: 1px;
+      }
+      .key {
+        display: inline-block;
+        background: rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.2);
+        color: #111;
+        border-radius: 4px;
+        padding: 2px 8px; font-size: 12px;
+        font-family: 'Orbitron', monospace;
+      }
+
+      /* ── Splash/Start Screen ── */
+      #splash {
+        position: fixed; inset: 0; z-index: 200;
+        background: radial-gradient(circle at center, #0c1025 0%, #050510 100%);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 28px;
+        transition: opacity 0.6s ease;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      #splash h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(28px, 5vw, 56px);
+        font-weight: 900;
+        letter-spacing: 8px;
+        background: linear-gradient(135deg, #7c5cff, #00f0ff);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 20px rgba(124,92,255,0.4));
+      }
+      #splash .subtitle {
+        font-size: 16px; letter-spacing: 6px;
+        color: rgba(255,255,255,0.4);
+        text-transform: uppercase;
+      }
+      #splash .controls-list {
+        display: flex; flex-direction: column; gap: 8px;
+        text-align: center;
+        background: rgba(255,255,255,0.04);
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(10px);
+      }
+      #splash .controls-list p {
+        font-size: 14px; color: rgba(255,255,255,0.6);
+        letter-spacing: 1px;
+      }
+      #btn-enter {
+        margin-top: 8px; padding: 16px 64px;
+        background: linear-gradient(135deg, #7c5cff, #00c8ff);
+        border: none;
+        border-radius: 100px;
+        color: #fff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 18px; font-weight: 900;
+        letter-spacing: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 40px rgba(124,92,255,0.3);
+      }
+      #btn-enter:hover {
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 15px 50px rgba(124,92,255,0.5);
+      }
+
+      #hint {
+        position: fixed; inset: 0;
+        display: none;
+        flex-direction: column; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.4);
+        gap: 8px; z-index: 100;
+        pointer-events: none;
+      }
+      #hint h2 {
+        font-family: 'Orbitron', sans-serif;    
+        font-size: 24px; letter-spacing: 4px;
+        color: #111;
+        text-transform: uppercase; text-shadow: none;
+      }
+
+
+      /* ── WIZARD OVERLAY ── */
+      #wizard-overlay {
+        position: fixed; inset: 0; z-index: 300;
+        display: none;
+        background: rgba(5,8,16,0.95);
+        backdrop-filter: blur(10px);
+        font-family: 'Outfit', sans-serif;
+        color: #eaeef6;
+        overflow-y: auto;
+      }
+      #wizard-overlay.visible {
+        display: block;
+        animation: fadeIn 0.4s ease;
+      }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+      .wiz-close {
+        position: absolute; top: 20px; right: 30px;
+        font-size: 30px; color: rgba(255,255,255,0.5);
+        cursor: pointer; transition: 0.2s;
+        z-index: 310;
+      }
+      .wiz-close:hover { color: #fff; transform: scale(1.1); }
+
+      /* Wizard Variables */
+      #wizard-overlay {
+        --surface: rgba(255,255,255,0.035);
+        --surface2: rgba(255,255,255,0.06);
+        --surface3: rgba(255,255,255,0.09);
+        --glass: rgba(10,15,30,0.75);
+        --border: rgba(255,255,255,0.07);
+        --border2: rgba(255,255,255,0.13);
+        --accent: #7c5cff;
+        --cyan: #00f0ff;
+        --green: #00ffaa;
+        --orange: #ffaa33;
+        --muted: #5a6080;
+        --radius: 20px;
+        --radius-sm: 12px;
+      }
+
+      .wizard-container { position: relative; max-width: 1000px; margin: 0 auto; padding: 80px 24px; min-height: 100vh; }
+      .step-panel { display: none; opacity: 0; transform: translateY(30px) scale(0.97); }
+      .step-panel.active { display: block; animation: stepIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+      .step-panel.exiting { display: block; animation: stepOut 0.35s ease forwards; }
+
+      @keyframes stepIn { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes stepOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-30px) scale(0.97); } }
+
+      .question-header { text-align: center; margin-bottom: 40px; }
+      .question-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 5px 16px; border-radius: 100px; letter-spacing: 2px; margin-bottom: 16px; background: rgba(0,240,255,0.12); color: var(--cyan); }
+      .question-title { font-size: clamp(28px, 4vw, 44px); font-weight: 900; line-height: 1.1; letter-spacing: -1px; margin-bottom: 10px; }
+      .question-title .gradient { background: linear-gradient(135deg, var(--accent), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+      .question-subtitle { font-size: 16px; color: var(--muted); font-weight: 400; }
+
+      .choices-grid { display: grid; gap: 16px; margin-bottom: 20px; }
+      .choices-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+      .choices-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+      .choice-card {
+        position: relative; padding: 28px 24px; border-radius: var(--radius); border: 2px solid var(--border);
+        background: var(--glass); backdrop-filter: blur(16px); cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        overflow: hidden; text-align: center;
+      }
+      .choice-card:hover { transform: translateY(-6px); border-color: var(--border2); }
+      .choice-card.selected { border-color: var(--accent); box-shadow: 0 0 30px rgba(124,92,255,0.35); transform: translateY(-6px) scale(1.02); }
+      .choice-card.selected::after {
+        content: '✓'; position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%;
+        background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #fff;
+      }
+      .choice-icon { font-size: 52px; margin-bottom: 14px; }
+      .choice-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+      .choice-desc { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+      .nav-row { display: flex; justify-content: center; gap: 12px; margin-top: 36px; }
+      .btn { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 1px; padding: 13px 36px; border-radius: 100px; border: none; cursor: pointer; transition: all 0.25s; }
+      .btn:disabled { opacity: 0.25; cursor: not-allowed; }
+      .btn-back { background: var(--surface2); color: #eaeef6; border: 1px solid var(--border2); }
+      .btn-next { background: linear-gradient(135deg, var(--accent), #6040dd); color: #fff; }
+      .btn-launch { background: linear-gradient(135deg, var(--accent), var(--cyan)); color: #fff; font-size: 15px; padding: 16px 52px; }
+
+      .name-section { max-width: 500px; margin: 0 auto; text-align: center; }
+      .name-input { width: 100%; padding: 18px 22px; border-radius: var(--radius-sm); background: var(--surface2); border: 2px solid var(--border2); color: #fff; font-family: 'Outfit'; font-size: 20px; font-weight: 600; outline: none; transition: 0.2s; text-align: center; }
+      .name-input:focus { border-color: var(--accent); }
+
+      .blueprint { max-width: 600px; margin: 0 auto; padding: 32px; border-radius: var(--radius); background: var(--glass); border: 1px solid var(--border2); }
+      .blueprint-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+      .blueprint-row:last-child { border-bottom: none; }
+      .blueprint-icon { font-size: 28px; }
+      .blueprint-label { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--muted); letter-spacing: 2px; }
+      .blueprint-value { font-size: 16px; font-weight: 700; color: var(--accent); }
+
+      /* ── lil-gui overrides (Premium Dark) ── */
+      .lil-gui {
+        --background-color: rgba(8, 12, 24, 0.92) !important;
+        --widget-color: rgba(124, 92, 255, 0.2) !important;
+        --focus-color: rgba(124, 92, 255, 0.5) !important;
+        --hover-color: rgba(124, 92, 255, 0.12) !important;
+        --title-background-color: rgba(124, 92, 255, 0.15) !important;
+        --title-text-color: #c4b8ff !important;
+        --number-color: #00f0ff !important;
+        --string-color: #ffaa33 !important;
+        --font-family: 'Inter', sans-serif !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(124, 92, 255, 0.2) !important;
+        border-radius: 16px !important;
+        overflow: hidden !important;
+      }
+      .lil-gui .title { font-family: 'Orbitron', sans-serif !important; letter-spacing: 1px; font-size: 13px; }
+
+      /* ── Settings hint badge ── */
+      #settings-hint {
+        position: fixed; bottom: 16px; right: 16px; z-index: 50;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        padding: 8px 16px; border-radius: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        font-family: 'Inter', sans-serif;
+        font-size: 12px; color: rgba(0,0,0,0.7);
+        letter-spacing: 1px; pointer-events: none;
+      }
+      #settings-hint .key { background: rgba(0,0,0,0.1); border-color: rgba(0,0,0,0.2); color: #111; }
+
+      /* ── Ava Chat Input ── */
+      #ava-chat-input {
+        position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+        display: none; z-index: 250; width: 100%; max-width: 520px;
+        padding: 0; border-radius: 16px; overflow: hidden;
+        background: rgba(255,255,255,0.92); backdrop-filter: blur(20px);
+        box-shadow: 0 12px 48px rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.08);
+      }
+      #ava-chat-input.visible { display: flex; }
+      #ava-chat-input input {
+        flex: 1; border: none; outline: none; padding: 18px 20px;
+        font: 500 16px 'Outfit', sans-serif; color: #111; background: transparent;
+      }
+      #ava-chat-input input::placeholder { color: #999; }
+      #ava-chat-input button {
+        padding: 18px 24px; border: none; cursor: pointer;
+        background: linear-gradient(135deg, #7c5cff, #00c8ff); color: #fff;
+        font: 700 14px 'Orbitron', sans-serif; letter-spacing: 1px;
+        transition: opacity 0.2s;
+      }
+      #ava-chat-input button:hover { opacity: 0.85; }
+
+      /* ── 2D Portal Menu (M key) ── */
+      #portal-menu {
+        position: fixed; inset: 0; z-index: 250; display: none;
+        background: rgba(255,255,255,0.88); backdrop-filter: blur(24px);
+        font-family: 'Outfit', sans-serif;
+        overflow-y: auto;
+      }
+      #portal-menu.visible { display: block; animation: fadeIn 0.3s ease; }
+      #portal-menu .pm-header {
+        text-align: center; padding: 48px 24px 24px;
+      }
+      #portal-menu .pm-header h1 {
+        font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900;
+        color: #111; letter-spacing: 4px; margin-bottom: 8px;
+      }
+      #portal-menu .pm-header p {
+        font-size: 15px; color: #666; letter-spacing: 1px;
+      }
+      #portal-menu .pm-close {
+        position: absolute; top: 20px; right: 28px; font-size: 28px;
+        color: #666; cursor: pointer; transition: 0.2s;
+      }
+      #portal-menu .pm-close:hover { color: #111; transform: scale(1.1); }
+      #portal-menu .pm-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px; max-width: 900px; margin: 0 auto; padding: 0 32px 48px;
+      }
+      .pm-card {
+        background: rgba(255,255,255,0.9); border-radius: 16px;
+        border: 2px solid rgba(0,0,0,0.06);
+        padding: 28px 24px; text-align: center; cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      }
+      .pm-card:hover {
+        transform: translateY(-6px); border-color: rgba(124,92,255,0.3);
+        box-shadow: 0 12px 32px rgba(124,92,255,0.15);
+      }
+      .pm-card .pm-icon { font-size: 44px; margin-bottom: 12px; }
+      .pm-card .pm-title {
+        font-size: 18px; font-weight: 800; color: #111; margin-bottom: 6px;
+      }
+      .pm-card .pm-desc { font-size: 13px; color: #666; line-height: 1.4; }
+      .pm-card .pm-cat {
+        display: inline-block; margin-top: 10px; padding: 3px 12px;
+        border-radius: 100px; font-size: 10px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase;
+        background: rgba(124,92,255,0.1); color: #7c5cff;
+      }
+
+      /* ── ESC Hint ── */
+      #esc-hint {
+        position: fixed; top: 16px; right: 16px; z-index: 50;
+        background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+        padding: 6px 14px; border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.08);
+        font: 500 12px 'Inter', sans-serif; color: rgba(0,0,0,0.6);
+        letter-spacing: 1px; pointer-events: none; display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="hub-canvas"></canvas>
+    <div id="settings-hint"><span class="key">Tab</span> Settings &nbsp; <span class="key">M</span> Menu</div>
+    <div id="esc-hint"><span class="key">ESC</span> Release mouse</div>
+
+    <!-- Ava Chat Input -->
+    <div id="ava-chat-input">
+      <input type="text" id="ava-chat-text" placeholder="Say something to Ava..." autocomplete="off">
+      <button id="ava-chat-send">SEND</button>
+    </div>
+
+    <!-- 2D Portal Menu -->
+    <div id="portal-menu">
+      <div class="pm-close" onclick="closePortalMenu()">&times;</div>
+      <div class="pm-header">
+        <h1>VIVERSE HUB</h1>
+        <p>Quick-launch any experience — or press <span class="key">M</span> to return to 3D</p>
+      </div>
+      <div class="pm-grid" id="pm-grid"></div>
+    </div>
+
+
+    <!-- Splash -->
+    <div id="splash">
+      <h1>VIVERSE HUB</h1>
+      <p class="subtitle">Premium Interactive Lobby</p>
+      <div class="controls-list">
+        <p><span class="key">W A S D</span> &nbsp; Move</p>
+        <p><span class="key">Mouse</span> &nbsp; Look</p>
+        <p><span class="key">Space</span> &nbsp; Jump</p>
+        <p><span class="key">F</span> &nbsp; Fly mode</p>
+        <p><span class="key">E</span> &nbsp; Interact</p>
+      </div>
+      <button id="btn-enter">PLAY NOW</button>
+    </div>
+
+    <!-- In-game UI -->
+    <div id="crosshair"></div>
+    <div id="fly-mode"></div>
+    <div id="hint" style="display:none;">
+      <h2>Click to play</h2>
+      <p><span class="key">W A S D</span> &nbsp; Move &nbsp;|&nbsp; <span class="key">Mouse</span> &nbsp; Look</p>
+    </div>
+
+    <div id="portal-hud">
+      <div class="name" id="portal-name"></div>
+      <div class="hint" id="portal-hint">Press <span class="key">E</span> to interact</div>
+    </div>
+
+    <!-- Wizard Overlay -->
+    <div id="wizard-overlay">
+      <div class="wiz-close" onclick="closeWizard()">×</div>
+      <div class="wizard-container" id="wizard-container"></div>
+    </div>
+
+    <script>
+      // ── ESC HINT ──
+      document.addEventListener('pointerlockchange', () => {
+        const escHint = document.getElementById('esc-hint');
+        if (escHint) escHint.style.display = document.pointerLockElement ? 'block' : 'none';
+      });
+
+      // ── AVA CHAT INPUT ──
+      window.openAvaChatInput = function() {
+        const chatBox = document.getElementById('ava-chat-input');
+        const input = document.getElementById('ava-chat-text');
+        chatBox.classList.add('visible');
+        document.exitPointerLock();
+        setTimeout(() => input.focus(), 100);
+      };
+
+      function closeAvaChatInput() {
+        document.getElementById('ava-chat-input').classList.remove('visible');
+        document.getElementById('ava-chat-text').value = '';
+        setTimeout(() => document.body.requestPointerLock(), 200);
+      }
+
+      document.getElementById('ava-chat-send').addEventListener('click', async () => {
+        const input = document.getElementById('ava-chat-text');
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        closeAvaChatInput();
+        if (window.chatWithAva) await window.chatWithAva(text);
+      });
+
+      document.getElementById('ava-chat-text').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('ava-chat-send').click();
+        }
+        if (e.key === 'Escape') {
+          closeAvaChatInput();
+        }
+        e.stopPropagation(); // Don't let WASD etc. leak to game controls
+      });
+
+      // ── 2D PORTAL MENU ──
+      const PORTAL_MENU_DATA = [
+        { icon: '🌌', label: 'Splat World', desc: '3D Gaussian Splatting Explorer', cat: 'GAME', url: '/index.html?level=3' },
+        { icon: '💎', label: 'Prop Library', desc: 'Meshy AI-Generated 3D Assets', cat: 'TOOL', url: '/library.html' },
+        { icon: '🌍', label: 'Google Maps → 3DGS', desc: 'Google Photorealistic 3D Tiles', cat: 'WORLD', url: '/tile-test.html' },
+        { icon: '🏚️', label: 'Warehouse CQB', desc: 'Close-Quarters Room Clearing', cat: 'TRAINING', url: '/index.html?level=6' },
+        { icon: '🚀', label: 'Game Creator', desc: 'AI-Powered Game Wizard', cat: 'CREATE', url: null },
+      ];
+
+      // Build portal menu cards
+      const pmGrid = document.getElementById('pm-grid');
+      PORTAL_MENU_DATA.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'pm-card';
+        card.innerHTML = `
+          <div class="pm-icon">${p.icon}</div>
+          <div class="pm-title">${p.label}</div>
+          <div class="pm-desc">${p.desc}</div>
+          <div class="pm-cat">${p.cat}</div>
+        `;
+        card.addEventListener('click', () => {
+          if (p.url) {
+            window.location.href = p.url;
+          } else {
+            closePortalMenu();
+            if (window.openWizard) window.openWizard();
+          }
+        });
+        pmGrid.appendChild(card);
+      });
+
+      window.openPortalMenu = function() {
+        document.getElementById('portal-menu').classList.add('visible');
+        document.exitPointerLock();
+      };
+      window.closePortalMenu = function() {
+        document.getElementById('portal-menu').classList.remove('visible');
+        setTimeout(() => document.body.requestPointerLock(), 200);
+      };
+
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyM') {
+          const menu = document.getElementById('portal-menu');
+          if (menu.classList.contains('visible')) {
+            closePortalMenu();
+          } else {
+            openPortalMenu();
+          }
+        }
+      });
+
+      // WIZARD LOGIC
+      let wizState = { gameType: null, vibe: null, intensity: null, projectName: '' };
+      let currentStep = 0;
+
+      const WIZ_STEPS = [
+        {
+          id: 'gameType', title: 'What sounds fun to <span class="gradient">make?</span>', subtitle: 'Pick a core experience.',
+          type: 'choices', gridClass: 'cols-2',
+          choices: [
+            { id: 'flight-sim', icon: '✈️', title: 'Fly & Explore', desc: 'Relaxing 3D flight simulator.' },
+            { id: 'endless-runner', icon: '🏃‍♂️', title: 'Run & Dodge', desc: 'High-speed endless runner.' },
+            { id: 'tower-defense', icon: '🏰', title: 'Build & Defend', desc: 'Strategic tower defense.' },
+            { id: 'fps', icon: '🔫', title: 'First Person Shooter', desc: 'Fast-paced action combat.' }
+          ]
+        },
+        {
+          id: 'vibe', title: 'What is the <span class="gradient">core vibe?</span>', subtitle: 'This chooses the atmospheric theme.',
+          type: 'choices', gridClass: 'cols-2',
+          choices: [
+            { id: 'cyberpunk', icon: '🌃', title: 'Neon Cyberpunk', desc: 'Glowing lights, futuristic city.' },
+            { id: 'western', icon: '🌵', title: 'Wild Western', desc: 'Dusty frontier towns.' },
+            { id: 'pastel', icon: '🎨', title: 'Pastel Blocks', desc: 'Light, colorful, bubbly.' },
+            { id: 'fantasy', icon: '🧙‍♂️', title: 'Fantasy Magic', desc: 'Enchanted forests.' }
+          ]
+        },
+        {
+          id: 'intensity', title: 'How <span class="gradient">intense</span> is it?', subtitle: 'Sets the gameplay difficulty.',
+          type: 'choices', gridClass: 'cols-3',
+          choices: [
+            { id: 'chill', icon: '🌱', title: 'Casual & Chill', desc: 'Easy mechanics.' },
+            { id: 'action', icon: '🔥', title: 'Action-Packed', desc: 'Fast reflexes.' },
+            { id: 'hardcore', icon: '💀', title: 'Hardcore', desc: 'Sweaty, difficult.' }
+          ]
+        }
+      ];
+
+      function renderStep(idx) {
+        if (idx >= WIZ_STEPS.length) return showSummary();
+        currentStep = idx;
+        const step = WIZ_STEPS[idx];
+        const container = document.getElementById('wizard-container');
+        container.innerHTML = '';
+        
+        const panel = document.createElement('div');
+        panel.className = 'step-panel active';
+        
+        let html = `
+          <div class="question-header">
+            <div class="question-badge">STEP ${idx+1} OF ${WIZ_STEPS.length}</div>
+            <h1 class="question-title">${step.title}</h1>
+            <p class="question-subtitle">${step.subtitle}</p>
+          </div>
+          <div class="choices-grid ${step.gridClass}">
+        `;
+
+        step.choices.forEach(c => {
+          const sel = wizState[step.id] === c.id ? 'selected' : '';
+          html += `
+            <div class="choice-card ${sel}" data-id="${c.id}">
+              <div class="choice-icon">${c.icon}</div>
+              <div class="choice-title">${c.title}</div>
+              <div class="choice-desc">${c.desc}</div>
+            </div>
+          `;
+        });
+        html += `</div><div class="nav-row">`;
+        if (idx > 0) html += `<button class="btn btn-back" onclick="goBack()">← Back</button>`;
+        html += `<button class="btn btn-next" id="btn-next" ${wizState[step.id] ? '' : 'disabled'} onclick="goNext()">Continue →</button></div>`;
+
+        panel.innerHTML = html;
+        container.appendChild(panel);
+
+        const cards = panel.querySelectorAll('.choice-card');
+        const nextBtn = panel.querySelector('#btn-next');
+        cards.forEach(c => c.addEventListener('click', () => {
+          cards.forEach(card => card.classList.remove('selected'));
+          c.classList.add('selected');
+          wizState[step.id] = c.dataset.id;
+          if (nextBtn) nextBtn.disabled = false;
+        }));
+      }
+
+      function goNext() { renderStep(currentStep + 1); }
+      function goBack() { if (currentStep > 0) renderStep(currentStep - 1); }
+
+      function showSummary() {
+        const container = document.getElementById('wizard-container');
+        container.innerHTML = '';
+        const panel = document.createElement('div');
+        panel.className = 'step-panel active';
+        
+        panel.innerHTML = `
+          <div class="question-header"><h1 class="question-title">Your game is <span class="gradient">ready to build!</span></h1></div>
+          <div class="blueprint">
+            <div class="blueprint-row"><div class="blueprint-icon">🎮</div><div><div class="blueprint-label">TYPE</div><div class="blueprint-value">${wizState.gameType.toUpperCase()}</div></div></div>
+            <div class="blueprint-row"><div class="blueprint-icon">🎨</div><div><div class="blueprint-label">VIBE</div><div class="blueprint-value">${wizState.vibe.toUpperCase()}</div></div></div>
+            <div class="blueprint-row"><div class="blueprint-icon">🔥</div><div><div class="blueprint-label">INTENSITY</div><div class="blueprint-value">${wizState.intensity.toUpperCase()}</div></div></div>
+          </div>
+          <div class="name-section" style="margin-top:28px;">
+            <input type="text" class="name-input" id="project-name" placeholder="Name your game..." value="${wizState.projectName}">
+          </div>
+          <div class="nav-row">
+            <button class="btn btn-back" onclick="goBack()">← Back</button>
+            <button class="btn btn-launch" onclick="launchBuild()">🚀 Build With AI</button>
+          </div>
+        `;
+        container.appendChild(panel);
+      }
+
+      function launchBuild() {
+        const nameEl = document.getElementById('project-name');
+        const name = nameEl.value || `my-${wizState.gameType}-game`;
+        
+        const prompt = `Build a ${wizState.gameType} game called "${name}". The core aesthetic is ${wizState.vibe}. The gameplay intensity is ${wizState.intensity}. Let's make it fun and engaging!`;
+        
+        alert(`🚀 AI PROMPT GENERATED:\n\n${prompt}\n\nEnter this into the command line or Claude assistant.`);
+        closeWizard();
+      }
+
+      // EXPOSE TO HUB.JS
+      window.openWizard = function() {
+        wizState = { gameType: null, vibe: null, intensity: null, projectName: '' };
+        renderStep(0);
+        document.getElementById('wizard-overlay').classList.add('visible');
+        document.exitPointerLock();
+      }
+      
+      window.closeWizard = function() {
+        document.getElementById('wizard-overlay').classList.remove('visible');
+        setTimeout(() => document.body.requestPointerLock(), 100);
+      }
+    </script>
+    <script src="./src/hub.js" type="module"></script>
+  </body>
+</html>
