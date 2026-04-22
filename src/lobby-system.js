@@ -3,6 +3,7 @@ import {
   createComponent,
   Types,
   LocomotionEnvironment,
+  LocomotionSystem,
   Interactable,
   Pressed,
   AmbientLight,
@@ -42,11 +43,16 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js';
 // All other urls open in a new tab (XR session stays alive).
 const DESTINATIONS = [
   { label: 'PlanetGen World', desc: 'Procedural Frontier',  url: 'world',               color: '#44ff88', icon: 'rocket',    category: 'world'    },
+  { label: 'Snow World',      desc: 'Infinite Snowboard',   url: 'snow',                color: '#88ddff', icon: 'snow',      category: 'world'    },
   { label: 'Splat World',     desc: '3DGS Explorer',        url: '/index.html?level=3', color: '#ff44ff', icon: 'splat',     category: 'game'     },
   { label: 'Prop Library',    desc: 'Meshy AI Assets',      url: '/library.html',       color: '#ffaa00', icon: 'gem',       category: 'tool'     },
   { label: 'Google → 3DGS',   desc: 'Google 3D Tiles',      url: '/tile-test.html',     color: '#00ffff', icon: 'voxel',     category: 'world'    },
   { label: 'Warehouse CQB',   desc: 'Room Clearing',        url: '/index.html?level=6', color: '#64c8ff', icon: 'warehouse', category: 'training' },
 ];
+
+// Height above the procedural terrain where the lobby floats.
+// Must be above max terrain height (~100 m) so chunks never destroy lobby entities.
+export const LOBBY_Y = 1;
 
 // ─── PortalDestination component (kept with its system per convention) ─────────
 export const PortalDestination = createComponent('PortalDestination', {
@@ -169,6 +175,31 @@ function buildIcon_rocket(color) {
   return g;
 }
 
+function buildIcon_snow(color) {
+  const g   = new Group();
+  const mat = new MeshStandardMaterial({
+    color, emissive: color, emissiveIntensity: 0.6,
+    metalness: 0.2, roughness: 0.08, transparent: true, opacity: 0.9,
+  });
+  // Three arms in the XZ plane → 6-pointed horizontal snowflake
+  for (let i = 0; i < 3; i++) {
+    const arm = new Mesh(new BoxGeometry(1.0, 0.06, 0.06), mat);
+    arm.rotation.y = (Math.PI / 3) * i;
+    g.add(arm);
+  }
+  // Short branch stubs at each of the 6 tips
+  for (let i = 0; i < 6; i++) {
+    const angle  = (Math.PI / 3) * i;
+    const branch = new Mesh(new BoxGeometry(0.28, 0.05, 0.05), mat);
+    branch.rotation.y = angle + Math.PI / 4;
+    branch.position.set(Math.sin(angle) * 0.3, 0, Math.cos(angle) * 0.3);
+    g.add(branch);
+  }
+  // Vertical ice spike through the centre
+  g.add(new Mesh(new CylinderGeometry(0.05, 0.02, 0.55, 6), mat));
+  return g;
+}
+
 const ICON_BUILDERS = {
   crosshair: buildIcon_crosshair,
   splat:     buildIcon_splat,
@@ -176,6 +207,7 @@ const ICON_BUILDERS = {
   gem:       buildIcon_gem,
   warehouse: buildIcon_warehouse,
   rocket:    buildIcon_rocket,
+  snow:      buildIcon_snow,
 };
 
 // ─── LobbySystem ─────────────────────────────────────────────────────────────
@@ -190,22 +222,38 @@ export class LobbySystem extends createSystem(
     this._iconMeshes    = [];
     this._particleRings = [];
     this._labelMeshes   = [];
+    this._floorEntity   = null;
     this._transitioning = false;
     this._scratch       = new Vector3();
     this.onEnterWorld   = null;
+    this.onEnterSnow    = null;
+    this.onReturnToLobby = null;
 
     this._buildAtmosphere();
     this._buildFloor();
     this._buildPortals();
 
+    // "i" key — teleport back to lobby origin from any world.
+    const _onKeyDown = (e) => {
+      if (e.key !== 'b' && e.key !== 'B') return;
+      const lobbyPos = new Vector3(0, LOBBY_Y + 1.5, 0);
+      this.world.player.position.set(lobbyPos.x, lobbyPos.y, lobbyPos.z);
+      const loco = this.world.getSystem(LocomotionSystem);
+      loco?.['locomotor']?.teleport(lobbyPos);
+      this._transitioning = false;
+      this.onReturnToLobby?.();
+    };
+    document.addEventListener('keydown', _onKeyDown);
+    this.cleanupFuncs.push(() => document.removeEventListener('keydown', _onKeyDown));
+
     this.queries.pressedPortals.subscribe('qualify', (entity) => {
       if (this._transitioning) return;
       const url = entity.getValue(PortalDestination, 'url');
       if (url === 'world') {
-        this._transitioning = true;
-        this.disposeLobby();
-        this.world.player.position.set(0, 100, 0);
-        this.onEnterWorld?.();
+        this._onPortalEntry(LOBBY_Y + 1.5, this.onEnterWorld);
+      } else if (url === 'snow') {
+        // Snow terrain starts at ~220 m; spawn at 300 to fall cleanly onto it.
+        this._onPortalEntry(300, this.onEnterSnow);
       } else if (url) {
         window.open(url, '_blank');
       }
@@ -246,6 +294,7 @@ export class LobbySystem extends createSystem(
       color: 0xffffff, size: 1.5, transparent: true, opacity: 0.85,
       blending: AdditiveBlending, depthWrite: false, sizeAttenuation: true,
     }));
+    stars.position.y = LOBBY_Y;
     this.scene.add(stars);
     this._sceneObjects.push(stars);
 
@@ -254,7 +303,7 @@ export class LobbySystem extends createSystem(
     const fogPos   = new Float32Array(fogCount * 3);
     for (let i = 0; i < fogCount; i++) {
       fogPos[i * 3]     = (Math.random() - 0.5) * 70;
-      fogPos[i * 3 + 1] = Math.random() * 1.5;
+      fogPos[i * 3 + 1] = LOBBY_Y + Math.random() * 1.5;
       fogPos[i * 3 + 2] = (Math.random() - 0.5) * 70;
     }
     const fogGeo = new BufferGeometry();
@@ -276,12 +325,12 @@ export class LobbySystem extends createSystem(
     this._sceneObjects.push(hemi);
 
     const fill = new PointLight(0x7788cc, 3.0, 60, 1.5);
-    fill.position.set(0, 12, 0);
+    fill.position.set(0, LOBBY_Y + 12, 0);
     this.scene.add(fill);
     this._sceneObjects.push(fill);
 
     const warm = new PointLight(0x7c5cff, 1.5, 40, 2);
-    warm.position.set(0, 1, 0);
+    warm.position.set(0, LOBBY_Y + 1, 0);
     this.scene.add(warm);
     this._sceneObjects.push(warm);
   }
@@ -321,12 +370,15 @@ export class LobbySystem extends createSystem(
       new BoxGeometry(80, 1, 80),
       new MeshStandardMaterial({ map: hexTex, color: 0xffffff, roughness: 0.6, metalness: 0.4 }),
     );
-    floorMesh.position.y = -0.5;
+    floorMesh.position.y = LOBBY_Y - 0.5;
     floorMesh.receiveShadow = true;
 
-    const floorEntity = this.world.createTransformEntity(floorMesh);
-    floorEntity.addComponent(LocomotionEnvironment);
-    this._entities.push(floorEntity);
+    this._floorMesh = floorMesh;
+    this._floorEntity = this.world.createTransformEntity(floorMesh, {
+      parent: this.world.sceneEntity,
+      persistent: true,
+    });
+    this._floorEntity.addComponent(LocomotionEnvironment);
   }
 
   _buildPortals() {
@@ -340,17 +392,20 @@ export class LobbySystem extends createSystem(
       const z      = -Math.cos(angle) * radius;
 
       const portalGroup  = this._buildPortalGroup(dest);
-      const portalEntity = this.world.createTransformEntity(portalGroup);
-      portalEntity.object3D.position.set(x, 0, z);
-      portalEntity.object3D.lookAt(0, 0, 0);
+      const portalEntity = this.world.createTransformEntity(portalGroup, {
+        parent: this.world.sceneEntity,
+        persistent: true,
+      });
+      portalEntity.object3D.position.set(x, LOBBY_Y, z);
+      portalEntity.object3D.lookAt(0, LOBBY_Y, 0);
       portalEntity.addComponent(PortalDestination, { url: dest.url, label: dest.label, colorHex: dest.color });
       portalEntity.addComponent(Interactable);
       this._entities.push(portalEntity);
 
       // Spotlight targets the pedestal position; target must be in scene
       const spot = new SpotLight(new Color(dest.color), 40, 15, 0.45, 0.6, 1);
-      spot.position.set(x, 7, z);
-      spot.target.position.set(x, 0, z);
+      spot.position.set(x, LOBBY_Y + 7, z);
+      spot.target.position.set(x, LOBBY_Y, z);
       this.scene.add(spot);
       this.scene.add(spot.target);
       this._sceneObjects.push(spot, spot.target);
@@ -489,7 +544,37 @@ export class LobbySystem extends createSystem(
     }
   }
 
-  disposeLobby() {
+  // Shared portal-entry sequence used by every in-world portal.
+  // Converts portal entities to plain scene objects (removes RayInteractable so
+  // they stop consuming controller input), sinks the lobby floor below terrain,
+  // and resets the locomotion worker before handing off to the world callback.
+  _onPortalEntry(spawnY, onEnter) {
+    this._transitioning = true;
+
+    // Remove the floor's collision from the locomotion worker.
+    // addEnvironment() bakes a static BVH at registration time, so moving the
+    // mesh afterwards has no effect. Disposing the entity triggers the
+    // LocomotionSystem's disqualify callback → removeEnvironment → BVH removed.
+    if (this._floorEntity) {
+      this._floorEntity.dispose();
+      this._floorEntity = null;
+    }
+    if (this._floorMesh) {
+      this._floorMesh.removeFromParent();
+      this._floorMesh = null;
+    }
+
+    // Each onEnter callback teleports the locomotor AFTER its terrain BVHs
+    // are queued, so the worker processes AddEnvironment before Teleport.
+    // Doing it here would race: worker gets Teleport before any BVH is built.
+    onEnter?.();
+
+    // Re-enable portals after world starts loading so the player can return
+    // to the lobby area and use them again.
+    setTimeout(() => { this._transitioning = false; }, 2000);
+  }
+
+  _disposeLobbyVisuals() {
     for (const e of this._entities)     e.dispose();
     for (const o of this._sceneObjects) this.scene.remove(o);
     this._entities      = [];
@@ -498,5 +583,12 @@ export class LobbySystem extends createSystem(
     this._particleRings = [];
     this._labelMeshes   = [];
     this.scene.fog      = null;
+  }
+
+  // Full teardown including floor — use when not transitioning to the world.
+  disposeLobby() {
+    this._disposeLobbyVisuals();
+    this._floorEntity?.dispose();
+    this._floorEntity = null;
   }
 }

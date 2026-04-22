@@ -55,7 +55,7 @@ const SUSP_REST     = 0.25;                  // m  rest length
 const SUSP_STIFF    = 50;                    // spring stiffness
 const SUSP_DAMP_R   = 2.3;                   // relaxation damping
 const SUSP_DAMP_C   = 4.4;                   // compression damping
-const FRICTION_SLIP = 2.5;                   // tyre grip — higher = more traction
+const FRICTION_SLIP = 1.8;                   // tyre grip — lower reduces rolling resistance
 const ROLL_INFL     = 0.05;                  // roll influence
 
 const ENGINE_MAX    = 40000;                 // N — Bullet absorbs most internally; needs to be high

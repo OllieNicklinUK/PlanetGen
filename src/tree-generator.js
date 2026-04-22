@@ -166,6 +166,64 @@ export function generateTreesForChunk(scene, cx, cz, chunkSize, seed) {
   return { meshes, positions: flatPositions };
 }
 
+// ── Snow-world pine placement (uses caller-supplied height function) ────────
+// Only spawns Pine Medium (variant index 1) so the snow world gets pines only.
+export function generatePinesForChunk(scene, cx, cz, chunkSize, seed, heightFn) {
+  if (!_variants) return [];
+  const pine       = _variants[1]; // Pine Medium
+  const r          = SeededRNG.fromChunk(seed ^ 0xC0DE, cx, cz);
+  const worldOffX  = cx * chunkSize;
+  const worldOffZ  = cz * chunkSize;
+  const positions  = [];
+
+  for (let i = 0; i < 25; i++) {
+    const lx = (r.next() - 0.5) * chunkSize;
+    const lz = (r.next() - 0.5) * chunkSize;
+    const wx = worldOffX + lx;
+    const wz = worldOffZ + lz;
+
+    const dist = Math.sqrt(wx * wx + wz * wz);
+    if (dist < 18) continue; // inside flat summit — no trees
+
+    // Slope check — skip cliffs
+    const eps = 2;
+    const dxH = (heightFn(wx - eps, wz) - heightFn(wx + eps, wz)) / (2 * eps);
+    const dzH = (heightFn(wx, wz - eps) - heightFn(wx, wz + eps)) / (2 * eps);
+    const normalY = 1 / Math.sqrt(dxH * dxH + 1 + dzH * dzH);
+    if (normalY < 0.65) continue;
+
+    // FBM density clustering — pines grow in groups
+    const density = fbm(wx * 0.01 + 77, wz * 0.01 + 77, 3);
+    if (density < 0.08) continue;
+
+    positions.push({ lx, gy: heightFn(wx, wz), lz, rotY: r.next() * Math.PI * 2 });
+  }
+
+  if (positions.length === 0) return [];
+
+  const dummy    = new THREE.Object3D();
+  const branchIM = new THREE.InstancedMesh(pine.branchGeo, pine.branchMat, positions.length);
+  const leavesIM = new THREE.InstancedMesh(pine.leavesGeo, pine.leavesMat, positions.length);
+  branchIM.castShadow = leavesIM.castShadow = true;
+  branchIM.receiveShadow = true;
+
+  for (let i = 0; i < positions.length; i++) {
+    const { lx, gy, lz, rotY } = positions[i];
+    dummy.position.set(worldOffX + lx, gy, worldOffZ + lz);
+    dummy.rotation.set(0, rotY, 0);
+    dummy.scale.setScalar(pine.scale);
+    dummy.updateMatrix();
+    branchIM.setMatrixAt(i, dummy.matrix);
+    leavesIM.setMatrixAt(i, dummy.matrix);
+  }
+  branchIM.instanceMatrix.needsUpdate = true;
+  leavesIM.instanceMatrix.needsUpdate = true;
+
+  scene.add(branchIM);
+  scene.add(leavesIM);
+  return [branchIM, leavesIM];
+}
+
 // ── Wind animation update (call each frame with elapsed time) ─────────────
 export function updateTreeWind(elapsedTime) {
   if (!_variants) return;

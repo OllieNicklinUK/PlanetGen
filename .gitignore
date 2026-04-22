@@ -72,6 +72,25 @@ public/ui/
 UniRig-main/
 anigen.pinokio-main/
 PlanetGen_viverse/
+AssetRipper_mac_arm64/
+AssetRipper_mac_x64/
+modern-african-art-gallery/
+nexus-city-7-12/
+polygon-streaming-example/
+
+# Large binary assets at repo root (working copies, not project assets)
+/nexus.bin
+/nexus.glb
+/nexus.gltf
+Image_*.jpg
+Flagstone_*.jpg
+FloorPlaster_*.jpg
+LightPlastic_*.jpg
+concrete_*.jpg
+openart-image_*.jpg
+
+# Large binary assets — use cloud storage or LFS
+public/gltf/nexus.bin
 
 # Viverse library source — 87MB, installed separately via npm
 viverse-hub-package/viverse-main/

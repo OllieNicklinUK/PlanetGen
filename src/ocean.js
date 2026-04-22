@@ -111,6 +111,12 @@ export class OceanManager {
     }
   }
 
+  dispose() {
+    for (const m of this._patches) { this._scene.remove(m); m.geometry.dispose(); }
+    this._patches = [];
+    this._mat.dispose();
+  }
+
   get seaLevel() { return SEA_LEVEL; }
   get patchCount() { return this._patches.length; }
 }

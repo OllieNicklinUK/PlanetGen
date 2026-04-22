@@ -109,4 +109,10 @@ export class Atmosphere {
       this.material.uniforms.cloudColor.value.set(0xffffff); // Wispy white
     }
   }
+
+  dispose() {
+    this.scene.remove(this.clouds);
+    this.clouds?.geometry?.dispose();
+    this.material?.dispose();
+  }
 }
