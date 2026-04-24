@@ -1,4 +1,4 @@
-// Seeded RNG and Simplex Noise — from viverse-city-world + Simon Dev's noise approach
+// Seeded RNG and Simplex Noise
 
 export class SeededRNG {
   constructor(seed) {
@@ -75,73 +75,4 @@ export function fbm(x, y, octaves = 4) {
     f *= 2;
   }
   return v;
-}
-
-export const TERRAIN_CONFIG = {
-  heightScale: 60,      // Terrain height amplitude
-  terrainDetail: 5,     // Feature scale (1=large, 10=detailed); freq = detail * 0.0006
-  octaves: 5,           // Noise octaves (1–8)
-  cityDensity: 50,      // 0–100; threshold = 0.6 - density*0.01
-};
-
-// ── Safe spawn zone ───────────────────────────────────────────────────────────
-// Guarantees a flat, open, building-free area around the world origin so the
-// player always lands somewhere navigable.  Blends smoothly into the natural
-// world beyond SAFE_OUTER so there is no visible cliff or seam.
-const SAFE_INNER  = 60;   // metres — fully flat within this radius
-const SAFE_OUTER  = 160;  // metres — blended back to natural terrain by this radius
-const SAFE_HEIGHT = 2.0;  // metres — terrain Y inside the safe zone (above sea level)
-const CITY_CLEAR  = 90;   // metres — no buildings spawn within this radius
-
-function _smoothstep(edge0, edge1, x) {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
-
-export function getTerrainHeight(wx, wz) {
-  const { heightScale, terrainDetail, octaves, cityDensity } = TERRAIN_CONFIG;
-  const freq = terrainDetail * 0.0006;
-  const threshold = 0.6 - cityDensity * 0.01;
-  let h = fbm(wx * freq, wz * freq, octaves) * heightScale;
-  const flat = fbm(wx * 0.001 + 50, wz * 0.001 + 50, 2);
-  if (flat > threshold) h = h + (4 - h) * Math.min(1, (flat - threshold) * 5);
-
-  // Safe spawn zone: override height near origin
-  const dist = Math.hypot(wx, wz);
-  if (dist < SAFE_INNER) return SAFE_HEIGHT;
-  if (dist < SAFE_OUTER) return SAFE_HEIGHT + _smoothstep(SAFE_INNER, SAFE_OUTER, dist) * (h - SAFE_HEIGHT);
-
-  return h;
-}
-
-export function isCityZone(wx, wz) {
-  // Keep buildings out of the player spawn area
-  if (Math.hypot(wx, wz) < CITY_CLEAR) return false;
-  const threshold = 0.6 - TERRAIN_CONFIG.cityDensity * 0.01;
-  return fbm(wx * 0.001 + 50, wz * 0.001 + 50, 2) > threshold;
-}
-
-// ── Biome system ──────────────────────────────────────────────────────────────
-// Two orthogonal low-frequency noise axes produce a 2D biome map.
-// Offsets (+200, +400) keep biome noise independent from height noise.
-export const BIOME = { GRASS: 0, ROCK: 1, SAND: 2, DUST: 3, CLIFF: 4 };
-
-export function getBiome(wx, wz) {
-  // Biome scale: patches ~400-600 units wide
-  const bx = simplex2(wx * 0.0018 + 200, wz * 0.0018 + 200); // -1..1
-  const bz = simplex2(wx * 0.0022 + 400, wz * 0.0022 + 400);
-  // Also use terrain steepness proxy
-  const steep = Math.abs(fbm(wx * 0.003, wz * 0.003, 2));
-
-  // Cliff: very steep areas, independent of noise patch
-  if (steep > 0.45) return BIOME.CLIFF;
-
-  // 2D biome map using bx/bz quadrants + smooth mixing
-  const warm = bx;            // warm positive = sand/dust; negative = grass/rock
-  const moist = bz;           // moist positive = grass; negative = rock/dust
-
-  if (warm > 0.25)  return moist > 0.0 ? BIOME.SAND : BIOME.DUST;
-  if (warm < -0.2)  return moist > 0.1 ? BIOME.GRASS : BIOME.ROCK;
-  // Transition zone
-  return moist > 0.15 ? BIOME.GRASS : (warm > 0.0 ? BIOME.DUST : BIOME.ROCK);
 }
