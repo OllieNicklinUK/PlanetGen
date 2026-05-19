@@ -193,7 +193,7 @@ if (_urlMode === 'builder') {
   // while terrain BVH bodies build over the first few frames.
   const safeFloor = new Mesh(
     new BoxGeometry(400, 50, 400),
-    new MeshBasicMaterial({ visible: false }),
+    new MeshBasicMaterial({ color: 0x228833 }),
   );
   safeFloor.position.set(0, LOBBY_Y - 25, 0);  // top surface at exactly LOBBY_Y
   scene.add(safeFloor);
