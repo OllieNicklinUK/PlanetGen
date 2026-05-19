@@ -1,0 +1,376 @@
+{
+  "heads": [
+    {
+      "id": "head_blunt_A",
+      "file": "heads/head_blunt_A.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ARID",
+        "TEMPERATE",
+        "ARCTIC",
+        "JUNGLE"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "head_elongated_B",
+      "file": "heads/head_elongated_B.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "head_wide_C",
+      "file": "heads/head_wide_C.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "NOPED"
+      ],
+      "biomeAffinity": [
+        "AQUATIC",
+        "MARSH",
+        "TEMPERATE"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "head_eyeless_D",
+      "file": "heads/head_eyeless_D.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED",
+        "NOPED"
+      ],
+      "biomeAffinity": [
+        "TOXIC",
+        "CAVE",
+        "VOLCANIC"
+      ],
+      "weight": 0.7
+    },
+    {
+      "id": "head_beak_E",
+      "file": "heads/head_beak_E.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "BIPED",
+        "QUADRUPED"
+      ],
+      "biomeAffinity": [
+        "ARCTIC",
+        "TEMPERATE",
+        "ARID"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "head_alien_F",
+      "file": "heads/head_alien_F.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "ANY"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 0.6
+    },
+    {
+      "id": "head_elephant",
+      "file": "heads/Elephant.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "TEMPERATE",
+        "ARID",
+        "ARCTIC",
+        "JUNGLE"
+      ],
+      "weight": 1.2
+    },
+    {
+      "id": "head_apex",
+      "file": "heads/apex.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "BIPED",
+        "QUADRUPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "head_rex",
+      "file": "heads/rex.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "BIPED",
+        "QUADRUPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1.1
+    },
+    {
+      "id": "head_skull",
+      "file": "heads/skull.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "ANY"
+      ],
+      "biomeAffinity": [
+        "CAVE",
+        "TOXIC",
+        "VOLCANIC",
+        "ARID"
+      ],
+      "weight": 0.8
+    }
+  ],
+  "tails": [
+    {
+      "id": "tail_stub",
+      "file": "tails/tail_stub.glb",
+      "attachBone": "tail_root",
+      "compatibleMorphotypes": [
+        "ANY"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "tail_fin",
+      "file": "tails/tail_fin.glb",
+      "attachBone": "tail_root",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "NOPED"
+      ],
+      "biomeAffinity": [
+        "AQUATIC",
+        "MARSH"
+      ],
+      "weight": 1.2
+    },
+    {
+      "id": "tail_whip",
+      "file": "tails/tail_whip.glb",
+      "attachBone": "tail_root",
+      "compatibleMorphotypes": [
+        "ANY"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "tail_club",
+      "file": "tails/tail_club.glb",
+      "attachBone": "tail_root",
+      "compatibleMorphotypes": [
+        "QUADRUPED"
+      ],
+      "biomeAffinity": [
+        "ARID",
+        "VOLCANIC",
+        "ARCTIC"
+      ],
+      "weight": 0.8
+    },
+    {
+      "id": "tail_fan",
+      "file": "tails/tail_fan.glb",
+      "attachBone": "tail_root",
+      "compatibleMorphotypes": [
+        "BIPED",
+        "QUADRUPED"
+      ],
+      "biomeAffinity": [
+        "TEMPERATE",
+        "JUNGLE"
+      ],
+      "weight": 0.9
+    }
+  ],
+  "limbEndings": [
+    {
+      "id": "foot_pad",
+      "file": "limb_endings/foot_pad.glb",
+      "attachBone": "foot",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "foot_claw",
+      "file": "limb_endings/foot_claw.glb",
+      "attachBone": "foot",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ARID",
+        "VOLCANIC",
+        "TOXIC",
+        "JUNGLE"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "foot_hoof",
+      "file": "limb_endings/foot_hoof.glb",
+      "attachBone": "foot",
+      "compatibleMorphotypes": [
+        "QUADRUPED"
+      ],
+      "biomeAffinity": [
+        "TEMPERATE",
+        "ARCTIC",
+        "ARID"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "foot_fin",
+      "file": "limb_endings/foot_fin.glb",
+      "attachBone": "foot",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "NOPED"
+      ],
+      "biomeAffinity": [
+        "AQUATIC",
+        "MARSH"
+      ],
+      "weight": 1.2
+    },
+    {
+      "id": "foot_talon",
+      "file": "limb_endings/foot_talon.glb",
+      "attachBone": "foot",
+      "compatibleMorphotypes": [
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    }
+  ],
+  "accessories": [
+    {
+      "id": "acc_horn_single",
+      "file": "accessories/acc_horn_single.glb",
+      "attachBone": "spine_mid",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ARID",
+        "TEMPERATE",
+        "ARCTIC",
+        "VOLCANIC"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "acc_horn_dual",
+      "file": "accessories/acc_horn_dual.glb",
+      "attachBone": "spine_mid",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "acc_frill",
+      "file": "accessories/acc_frill.glb",
+      "attachBone": "neck",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED"
+      ],
+      "biomeAffinity": [
+        "JUNGLE",
+        "ARID",
+        "TEMPERATE"
+      ],
+      "weight": 0.8
+    },
+    {
+      "id": "acc_spine_ridge",
+      "file": "accessories/acc_spine_ridge.glb",
+      "attachBone": "spine_mid",
+      "compatibleMorphotypes": [
+        "QUADRUPED",
+        "BIPED",
+        "NOPED"
+      ],
+      "biomeAffinity": [
+        "ANY"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "acc_antenna",
+      "file": "accessories/acc_antenna.glb",
+      "attachBone": "head",
+      "compatibleMorphotypes": [
+        "ANY"
+      ],
+      "biomeAffinity": [
+        "TOXIC",
+        "CAVE",
+        "DEEP_SPACE"
+      ],
+      "weight": 1
+    },
+    {
+      "id": "acc_biolum",
+      "file": "accessories/acc_biolum.glb",
+      "attachBone": "spine_mid",
+      "compatibleMorphotypes": [
+        "ANY"
+      ],
+      "biomeAffinity": [
+        "CAVE",
+        "TOXIC",
+        "DEEP_SPACE",
+        "AQUATIC"
+      ],
+      "weight": 0.9
+    }
+  ]
+}

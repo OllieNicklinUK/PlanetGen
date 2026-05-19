@@ -1,0 +1,21 @@
+{
+  "name": "viverse-hub-package",
+  "version": "1.0.0",
+  "description": "Standalone Hub Experience",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.184.0",
+    "three-mesh-bvh": "^0.9.9",
+    "@pixiv/three-vrm": "^3.5.1",
+    "lil-gui": "^0.21.0",
+    "@pmndrs/viverse": "file:viverse-main/packages/viverse"
+  },
+  "devDependencies": {
+    "vite": "^5.3.3"
+  }
+}
