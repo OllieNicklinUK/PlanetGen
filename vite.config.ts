@@ -51,7 +51,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
     sourcemap: process.env.NODE_ENV !== 'production',
     target: 'esnext',
     rollupOptions: { input: './index.html' },
