@@ -62,5 +62,5 @@ export default defineConfig({
     esbuildOptions: { target: 'esnext' },
   },
   publicDir: 'public',
-  base: './',
+  base: '/PlanetGen/',
 });
