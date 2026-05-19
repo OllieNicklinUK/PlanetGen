@@ -18,6 +18,29 @@ import { getTerrainHeight }        from './noise.js';
 
 const _urlMode = new URLSearchParams(window.location.search).get('mode');
 
+// ─── Sub-path fix for GitHub Pages ────────────────────────────────────────────
+// Third-party bundles (polygon-streaming) have hardcoded root-relative paths
+// like /lib/basis_transcoder.js that break when deployed under /PlanetGen/.
+// Intercept fetch + XHR and prepend the Vite base prefix to any root-relative
+// URL that doesn't already include it.
+{
+  const base = import.meta.env.BASE_URL; // '/PlanetGen/' in prod, '/' locally
+  if (base && base !== '/') {
+    const prefix = base.replace(/\/$/, '');
+    const rewrite = (url: string) =>
+      url.startsWith('/') && !url.startsWith(base) ? prefix + url : url;
+
+    const _fetch = window.fetch.bind(window);
+    window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+      _fetch(typeof input === 'string' ? rewrite(input) : input, init);
+
+    const _open = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, async = true, ...rest: any[]) {
+      return _open.call(this, method, typeof url === 'string' ? rewrite(url) : url, async, ...rest);
+    };
+  }
+}
+
 // ─── Renderer ─────────────────────────────────────────────────────────────────
 
 const canvas = document.getElementById('scene-container') as HTMLCanvasElement;
