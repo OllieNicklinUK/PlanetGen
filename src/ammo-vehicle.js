@@ -35,11 +35,11 @@ export function loadAmmoJS() {
       return;
     }
     const s    = document.createElement('script');
-    s.src      = '/ammo.js';
+    s.src      = import.meta.env.BASE_URL + 'ammo.js';
     s.onload   = () => resolve(
       typeof window.Ammo === 'function' ? window.Ammo() : window.Ammo,
     );
-    s.onerror  = () => reject(new Error('Failed to load /ammo.js'));
+    s.onerror  = () => reject(new Error('Failed to load ammo.js'));
     document.head.appendChild(s);
   });
 }

@@ -35,9 +35,9 @@ interface VehicleState {
 }
 
 const VEHICLE_DEFS: VehicleDef[] = [
-  { key: 'mech', url: '/mechs/mech1.glb', label: 'MECH', spawn: new Vector3(28, 0, 0), scale: 1.0, cockpitY: 14.0, flight: false, speed: 8.0, turnSpeed: 1.4, riseSpeed: 0, meshOffsetYaw: Math.PI / 2, meshYOffset: 0, physics: 'tank' },
-  { key: 'ship', url: '/mechs/Ship.glb',  label: 'SHIP', spawn: new Vector3(-28, 0, 0), scale: 1.0, cockpitY: 2.8, flight: true, speed: 100.0, turnSpeed: 1.8, riseSpeed: 40.0, meshOffsetYaw: Math.PI, meshYOffset: 2, physics: 'ship' },
-  { key: 'car',  url: '/mechs/1981_dmc_delorean.glb', label: 'CAR', spawn: new Vector3(0, 0, 28), scale: 100.0, cockpitY: -0.9, flight: false, speed: 0, turnSpeed: 0, riseSpeed: 0, meshOffsetYaw: Math.PI, meshYOffset: 0, physics: 'car' },
+  { key: 'mech', url: `${import.meta.env.BASE_URL}mechs/mech1.glb`, label: 'MECH', spawn: new Vector3(28, 0, 0), scale: 1.0, cockpitY: 14.0, flight: false, speed: 8.0, turnSpeed: 1.4, riseSpeed: 0, meshOffsetYaw: Math.PI / 2, meshYOffset: 0, physics: 'tank' },
+  { key: 'ship', url: `${import.meta.env.BASE_URL}mechs/Ship.glb`,  label: 'SHIP', spawn: new Vector3(-28, 0, 0), scale: 1.0, cockpitY: 2.8, flight: true, speed: 100.0, turnSpeed: 1.8, riseSpeed: 40.0, meshOffsetYaw: Math.PI, meshYOffset: 2, physics: 'ship' },
+  { key: 'car',  url: `${import.meta.env.BASE_URL}mechs/1981_dmc_delorean.glb`, label: 'CAR', spawn: new Vector3(0, 0, 28), scale: 100.0, cockpitY: -0.9, flight: false, speed: 0, turnSpeed: 0, riseSpeed: 0, meshOffsetYaw: Math.PI, meshYOffset: 0, physics: 'car' },
 ];
 
 export class VehicleManager {

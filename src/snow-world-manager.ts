@@ -115,10 +115,10 @@ export class SnowWorldManager {
       return t;
     };
     this._sharedMat = new MeshStandardMaterial({
-      map:          loadTex('/textures/snow/snow-color.jpg'),
-      normalMap:    loadTex('/textures/snow/snow-normal-gl.jpg'),
-      roughnessMap: loadTex('/textures/snow/snow-roughness.jpg'),
-      aoMap:        loadTex('/textures/snow/snow-ambientocclusion.jpg'),
+      map:          loadTex(`${import.meta.env.BASE_URL}textures/snow/snow-color.jpg`),
+      normalMap:    loadTex(`${import.meta.env.BASE_URL}textures/snow/snow-normal-gl.jpg`),
+      roughnessMap: loadTex(`${import.meta.env.BASE_URL}textures/snow/snow-roughness.jpg`),
+      aoMap:        loadTex(`${import.meta.env.BASE_URL}textures/snow/snow-ambientocclusion.jpg`),
       roughness: 1.0, metalness: 0.0, vertexColors: false,
     });
 

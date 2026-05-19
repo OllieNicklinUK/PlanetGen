@@ -165,7 +165,7 @@ export class WorldManager {
     ];
     for (const s of spawns) {
       const y = getTerrainHeight(s.x, s.z) + 0.05;
-      this._npcManager.addNpc({ x: s.x, z: s.z, y, name: s.name, dialogue: s.dialogue, modelUrl: '/gltf/robot/robot.gltf' });
+      this._npcManager.addNpc({ x: s.x, z: s.z, y, name: s.name, dialogue: s.dialogue, modelUrl: `${import.meta.env.BASE_URL}gltf/robot/robot.gltf` });
     }
   }
 
