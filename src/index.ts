@@ -192,12 +192,12 @@ if (_urlMode === 'builder') {
   // Invisible physics floor at the safe-zone height — immediate landing surface
   // while terrain BVH bodies build over the first few frames.
   const safeFloor = new Mesh(
-    new BoxGeometry(200, 1, 200),
+    new BoxGeometry(400, 50, 400),
     new MeshBasicMaterial({ visible: false }),
   );
-  safeFloor.position.set(0, LOBBY_Y - 0.5, 0);
-  safeFloor.updateWorldMatrix(true, true);
+  safeFloor.position.set(0, LOBBY_Y - 25, 0);  // top surface at exactly LOBBY_Y
   scene.add(safeFloor);
+  safeFloor.updateWorldMatrix(true, true);
   physicsWorld.addBody(safeFloor, false);
 
   // 1. Procedural world — rebuildNoise + buildMaterials + TerrainManager
@@ -220,8 +220,7 @@ if (_urlMode === 'builder') {
   lobby.init({ worldMode: true });
 
   lobby.onEnterWorld = () => {
-    // Already in the world — just snap back to spawn
-    setPlayerPos({ x: 0, y: getTerrainHeight(0, 0) + 1.5, z: 0 });
+    setPlayerPos({ x: 0, y: LOBBY_Y + 0.5, z: 0 });
   };
 
   lobby.onEnterSnow = () => {
@@ -235,8 +234,8 @@ if (_urlMode === 'builder') {
     charUpdateEnabled = false;
   };
 
-  // 4. Spawn above terrain surface in the flat safe zone
-  const spawnY = getTerrainHeight(0, 0) + 1.5;
+  // 4. Spawn just above the safe floor
+  const spawnY = LOBBY_Y + 0.5;
   character.position.set(0, spawnY, 0);
 
   vehicleMgr = new VehicleManager(scene, physicsWorld, character, getPlayerPos, setPlayerPos, (mounted) => {
