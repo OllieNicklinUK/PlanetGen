@@ -220,7 +220,7 @@ if (_urlMode === 'builder') {
   lobby.init({ worldMode: true });
 
   lobby.onEnterWorld = () => {
-    setPlayerPos({ x: 0, y: LOBBY_Y + 0.5, z: 0 });
+    setPlayerPos({ x: 0, y: LOBBY_Y - 1, z: 0 });
   };
 
   lobby.onEnterSnow = () => {
@@ -234,9 +234,9 @@ if (_urlMode === 'builder') {
     charUpdateEnabled = false;
   };
 
-  // 4. Spawn just above the safe floor
-  const spawnY = LOBBY_Y + 0.5;
-  character.position.set(0, spawnY, 0);
+  // Spawn with feet 1 m below the floor top so the capsule segment immediately
+  // intersects the floor face → physics resolves to LOBBY_Y on frame 1.
+  character.position.set(0, LOBBY_Y - 1, 0);
 
   vehicleMgr = new VehicleManager(scene, physicsWorld, character, getPlayerPos, setPlayerPos, (mounted) => {
     charUpdateEnabled = !mounted;
