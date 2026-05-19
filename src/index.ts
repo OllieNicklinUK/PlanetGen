@@ -1,6 +1,6 @@
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Vector3, Clock,
-  PCFSoftShadowMap, Mesh, PlaneGeometry, MeshBasicMaterial,
+  PCFSoftShadowMap, Mesh, BoxGeometry, MeshBasicMaterial,
 } from 'three';
 import { signal } from '@preact/signals-core';
 import { BvhPhysicsWorld, SimpleCharacter } from '@pmndrs/viverse';
@@ -169,10 +169,10 @@ if (_urlMode === 'builder') {
   // Invisible physics floor at the safe-zone height — immediate landing surface
   // while terrain BVH bodies build over the first few frames.
   const safeFloor = new Mesh(
-    new PlaneGeometry(120, 120).rotateX(-Math.PI / 2),
+    new BoxGeometry(200, 1, 200),
     new MeshBasicMaterial({ visible: false }),
   );
-  safeFloor.position.set(0, LOBBY_Y, 0);
+  safeFloor.position.set(0, LOBBY_Y - 0.5, 0);
   safeFloor.updateWorldMatrix(true, true);
   scene.add(safeFloor);
   physicsWorld.addBody(safeFloor, false);
