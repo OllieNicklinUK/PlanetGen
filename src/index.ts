@@ -248,9 +248,20 @@ if (_urlMode === 'builder') {
     charUpdateEnabled = false;
   };
 
-  // Spawn above the landing point — physics is paused for 2 s then released.
+  // Spawn above the landing point in fly mode (charUpdateEnabled = false so the
+  // player can look around freely).  Physics only enables once BOTH gates pass:
+  //   gate 1 — collider has been registered with the physics world (async GLTF load)
+  //   gate 2 — at least 5 s have elapsed (lets streaming geometry visually appear)
+  // A 30 s hard fallback prevents the player being frozen forever if the load fails.
   character.position.set(0, LOBBY_Y + 8, 0);
-  setTimeout(() => { charUpdateEnabled = true; }, 2000);
+
+  let _colliderGate = false;
+  let _timeGate     = false;
+  const _tryDrop = () => { if (_colliderGate && _timeGate) charUpdateEnabled = true; };
+
+  streamingMgr.onColliderReady = () => { _colliderGate = true; _tryDrop(); };
+  setTimeout(() => { _timeGate = true; _tryDrop(); }, 5000);
+  setTimeout(() => { charUpdateEnabled = true; }, 30_000); // hard fallback
 
   vehicleMgr = new VehicleManager(scene, physicsWorld, character, getPlayerPos, setPlayerPos, (mounted) => {
     charUpdateEnabled = !mounted;

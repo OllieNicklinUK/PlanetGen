@@ -11,6 +11,9 @@ export const STREAMING_ENVS = [
 ];
 
 export class PolygonStreamingManager {
+  /** Called once the static GLTF collider has been registered with the physics world. */
+  onColliderReady: (() => void) | null = null;
+
   private _stream:   StreamController | null = null;
   private _target  = new Vector3();
   private _dir     = new Vector3();
@@ -75,6 +78,7 @@ export class PolygonStreamingManager {
       root.updateMatrixWorld(true);
 
       this._physicsWorld.addBody(root, false);
+      this.onColliderReady?.();
 
       // Hide after physics registration — StaticGeometryGenerator ignores visibility
       // so ordering doesn't matter, but keep it clear.

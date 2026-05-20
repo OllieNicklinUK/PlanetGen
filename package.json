@@ -11,7 +11,9 @@
     "lint": "eslint src/",
     "format": "prettier --write src/",
     "test": "vitest run",
-    "export:lobby": "node scripts/export-lobby-scene.js"
+    "export:lobby": "node scripts/export-lobby-scene.js",
+    "build:viverse": "vite build --config vite.viverse.config.ts",
+    "package:viverse": "npm run build:viverse && cd viverse-dist && zip -r ../planetgen-viverse.zip . && cd .. && echo 'Created planetgen-viverse.zip'"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

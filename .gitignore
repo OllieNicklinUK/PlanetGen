@@ -67,6 +67,9 @@ public/ui/
 # Archive files (re-download if needed, don't bloat the repo)
 *.zip
 
+# Viverse build output (packaged separately from GitHub Pages docs/)
+viverse-dist/
+
 # External tool directories (not needed to run the game)
 UniRig-main/
 anigen.pinokio-main/
