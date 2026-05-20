@@ -24,9 +24,42 @@ function serveLocalDir(urlPrefix: string, dirPath: string) {
   };
 }
 
+// Vite v3+ serves public/ at the configured base (e.g. /PlanetGen/lib/...).
+// The polygon-streaming service worker runs at root scope and requests /lib/
+// and /gltf/ without the base prefix — serve those paths from public/ at root.
+function servePublicAtRoot(...prefixes: string[]) {
+  const publicDir = resolve('public');
+  return {
+    name: 'serve-public-at-root',
+    configureServer(server: any) {
+      for (const prefix of prefixes) {
+        server.middlewares.use(`/${prefix}`, (req: any, res: any, next: () => void) => {
+          const rel = decodeURIComponent(req.url).split('?')[0].replace(/^\//, '');
+          const file = join(publicDir, prefix, rel);
+          if (existsSync(file)) {
+            const ext = (file.split('.').pop() ?? '').toLowerCase();
+            const mime: Record<string, string> = {
+              js: 'application/javascript',
+              wasm: 'application/wasm',
+              gltf: 'model/gltf+json',
+              glb: 'model/gltf-binary',
+              bin: 'application/octet-stream',
+            };
+            if (mime[ext]) res.setHeader('Content-Type', mime[ext]);
+            createReadStream(file).pipe(res);
+            return;
+          }
+          next();
+        });
+      }
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     serveLocalDir('creature-models', resolve('creature models')),
+    servePublicAtRoot('lib', 'gltf'),
     mkcert(),
   ],
   resolve: {

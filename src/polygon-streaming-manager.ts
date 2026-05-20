@@ -1,8 +1,9 @@
 import { StreamController } from '@polygon-streaming/web-player-threejs';
 import {
   Scene, PerspectiveCamera, WebGLRenderer, Vector3, Group,
-  Mesh, BufferGeometry, BufferAttribute, MeshBasicMaterial,
+  Mesh, Object3D,
 } from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { BvhPhysicsWorld } from '@pmndrs/viverse';
 
 export const STREAMING_ENVS = [
@@ -13,8 +14,8 @@ export class PolygonStreamingManager {
   private _stream:   StreamController | null = null;
   private _target  = new Vector3();
   private _dir     = new Vector3();
-  private _groups: Group[]     = [];
-  private _colliders: Mesh[]   = [];
+  private _groups: Group[]       = [];
+  private _colliders: Object3D[] = [];
 
   constructor(
     private _scene:          Scene,
@@ -41,16 +42,6 @@ export class PolygonStreamingManager {
       },
     );
 
-    // Inject collider support — the stream player calls addCollider with the exact
-    // geometry it streams, giving a perfect match with the visual model.
-    const internalRenderer = (this._stream as any).renderer;
-    Object.defineProperty(internalRenderer, 'supportsColliders', {
-      value: true, writable: true, configurable: true,
-    });
-    internalRenderer.addCollider = (_parentGroup: any, geometry: any) => {
-      this._buildBvhCollider(geometry);
-    };
-
     STREAMING_ENVS.forEach((env, i) => {
       const group = new Group();
       group.scale.setScalar(env.scale);
@@ -65,25 +56,32 @@ export class PolygonStreamingManager {
         receiveShadows:  true,
       });
     });
+
+    this._loadStaticCollider(`${import.meta.env.BASE_URL}gltf/nexus.gltf`, STREAMING_ENVS[0].posY, STREAMING_ENVS[0].scale);
   }
 
-  private _buildBvhCollider(geometry: { positions: Float32Array; indices: Uint32Array | Uint16Array }) {
-    const { positions, indices } = geometry;
-    if (!positions?.length || !indices?.length) return;
+  private _loadStaticCollider(url: string, posY: number, scale: number) {
+    new GLTFLoader().loadAsync(url).then((gltf) => {
+      const root = gltf.scene;
+      root.position.y = posY;
+      root.scale.setScalar(scale);
 
-    const bufGeo = new BufferGeometry();
-    bufGeo.setAttribute('position', new BufferAttribute(positions, 3));
-    bufGeo.setIndex(new BufferAttribute(indices, 1));
+      // Add to scene so the world matrix chain is fully resolved.
+      this._scene.add(root);
 
-    const env  = STREAMING_ENVS[0];
-    const mesh = new Mesh(bufGeo, new MeshBasicMaterial());
-    mesh.visible = false;
-    mesh.scale.setScalar(env.scale);
-    mesh.position.y = env.posY;
-    this._scene.add(mesh);
-    mesh.updateWorldMatrix(true, true);
-    this._physicsWorld.addBody(mesh, false);
-    this._colliders.push(mesh);
+      // updateWorldMatrix(true,true) skips children whose matrixAutoUpdate=false
+      // (Three.js GLTFLoader sets this on nodes exported with a pre-baked matrix).
+      // updateMatrixWorld(force=true) always propagates through the full hierarchy.
+      root.updateMatrixWorld(true);
+
+      this._physicsWorld.addBody(root, false);
+
+      // Hide after physics registration — StaticGeometryGenerator ignores visibility
+      // so ordering doesn't matter, but keep it clear.
+      root.traverse((child) => { if (child instanceof Mesh) child.visible = false; });
+
+      this._colliders.push(root);
+    });
   }
 
   update() {
