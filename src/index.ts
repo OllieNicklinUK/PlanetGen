@@ -1,6 +1,6 @@
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Vector3, Clock,
-  PCFSoftShadowMap, Mesh, BoxGeometry, MeshBasicMaterial,
+  PCFSoftShadowMap,
 } from 'three';
 import { signal } from '@preact/signals-core';
 import { BvhPhysicsWorld, SimpleCharacter } from '@pmndrs/viverse';
@@ -79,6 +79,31 @@ function setPlayerPos(pos: { x: number; y: number; z: number }) {
   );
 }
 
+// ─── Camera perspective (Numpad 1 = FPS, Numpad 2 = 3rd person) ───────────────
+
+const FPS_CAM_OPTIONS = {
+  zoom: { minDistance: 0, maxDistance: 0 },
+  characterBaseOffset: [0, 1.6, 0] as [number, number, number],
+};
+
+let camOptions: typeof FPS_CAM_OPTIONS | undefined = undefined; // default: 3rd person
+
+function setCameraMode(mode: 'fps' | '3rd') {
+  if (mode === 'fps') {
+    camOptions = FPS_CAM_OPTIONS;
+    character.cameraBehavior.zoomDistance = 0;
+  } else {
+    camOptions = undefined;
+    character.cameraBehavior.zoomDistance = 4;
+  }
+  (character as any).options.cameraBehavior = camOptions;
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Numpad1') setCameraMode('fps');
+  else if (e.code === 'Numpad2') setCameraMode('3rd');
+});
+
 // ─── Mode: builder (?mode=builder) ───────────────────────────────────────────
 
 if (_urlMode === 'builder') {
@@ -154,7 +179,7 @@ if (_urlMode === 'builder') {
   const clock = new Clock(); let time = 0;
   renderer.setAnimationLoop(() => {
     const delta = Math.min(clock.getDelta(), 0.1); time += delta;
-    if (charUpdateEnabled) { character.update(delta); } else { character.cameraBehavior.update(camera, character, delta, (ray, far) => physicsWorld.raycast(ray, far)?.distance); }
+    if (charUpdateEnabled) { character.update(delta); } else { character.cameraBehavior.update(camera, character, delta, (ray, far) => physicsWorld.raycast(ray, far)?.distance, camOptions); }
     lobby.update(delta, time); streamingMgr?.update(); worldMgr?.update(delta, time); vehicleMgr?.update(delta); snowMgr?.update(delta, time); npcMgr.update(delta);
     renderer.render(scene, camera);
   });
@@ -172,7 +197,7 @@ if (_urlMode === 'builder') {
   const clock = new Clock(); let time = 0;
   renderer.setAnimationLoop(() => {
     const delta = Math.min(clock.getDelta(), 0.1); time += delta;
-    character.cameraBehavior.update(camera, character, delta, (ray, far) => physicsWorld.raycast(ray, far)?.distance);
+    character.cameraBehavior.update(camera, character, delta, (ray, far) => physicsWorld.raycast(ray, far)?.distance, camOptions);
     snowMgr.update(delta, time);
     renderer.render(scene, camera);
   });
@@ -184,21 +209,10 @@ if (_urlMode === 'builder') {
 
 } else {
 
-  let charUpdateEnabled = true;
+  let charUpdateEnabled = false;
   let vehicleMgr:   VehicleManager        | null = null;
   let snowMgr:      SnowWorldManager      | null = null;
   let streamingMgr: PolygonStreamingManager | null = null;
-
-  // Invisible physics floor at the safe-zone height — immediate landing surface
-  // while terrain BVH bodies build over the first few frames.
-  const safeFloor = new Mesh(
-    new BoxGeometry(400, 50, 400),
-    new MeshBasicMaterial({ color: 0x228833 }),
-  );
-  safeFloor.position.set(0, LOBBY_Y - 25, 0);  // top surface at exactly LOBBY_Y
-  scene.add(safeFloor);
-  safeFloor.updateWorldMatrix(true, true);
-  physicsWorld.addBody(safeFloor, false);
 
   // 1. Procedural world — rebuildNoise + buildMaterials + TerrainManager
   const npcMgr = new NpcManager(scene, camera, getPlayerPos);
@@ -234,9 +248,9 @@ if (_urlMode === 'builder') {
     charUpdateEnabled = false;
   };
 
-  // Spawn with feet 1 m below the floor top so the capsule segment immediately
-  // intersects the floor face → physics resolves to LOBBY_Y on frame 1.
-  character.position.set(0, LOBBY_Y - 1, 0);
+  // Spawn above the landing point — physics is paused for 2 s then released.
+  character.position.set(0, LOBBY_Y + 8, 0);
+  setTimeout(() => { charUpdateEnabled = true; }, 2000);
 
   vehicleMgr = new VehicleManager(scene, physicsWorld, character, getPlayerPos, setPlayerPos, (mounted) => {
     charUpdateEnabled = !mounted;
@@ -253,7 +267,7 @@ if (_urlMode === 'builder') {
     if (charUpdateEnabled) {
       character.update(delta);
     } else {
-      character.cameraBehavior.update(camera, character, delta, (ray, far) => physicsWorld.raycast(ray, far)?.distance);
+      character.cameraBehavior.update(camera, character, delta, (ray, far) => physicsWorld.raycast(ray, far)?.distance, camOptions);
     }
     worldMgr.update(delta, time);
     streamingMgr?.update();
