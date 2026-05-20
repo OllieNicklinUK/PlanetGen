@@ -6,6 +6,8 @@ import { resolve } from 'path';
 // the /PlanetGen/ prefix used for GitHub Pages.
 export default defineConfig({
   resolve: {
+    // Same deduplication fix as vite.config.ts — see comment there.
+    dedupe: ['three', 'three-mesh-bvh'],
     alias: {
       '@pmndrs/viverse': resolve('./viverse-main/packages/viverse/src/index.ts'),
     },

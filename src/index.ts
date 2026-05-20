@@ -1,6 +1,6 @@
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Vector3, Clock,
-  PCFSoftShadowMap,
+  PCFSoftShadowMap, BoxGeometry, Mesh, MeshStandardMaterial,
 } from 'three';
 import { signal } from '@preact/signals-core';
 import { BvhPhysicsWorld, SimpleCharacter } from '@pmndrs/viverse';
@@ -232,6 +232,20 @@ if (_urlMode === 'builder') {
   // 3. Lobby portals on the flat safe zone (no extra sky/lights/floor)
   const lobby = new LobbyManager(scene, physicsWorld, camera, getPlayerPos, setPlayerPos);
   lobby.init({ worldMode: true });
+
+  // 4. Guaranteed flat floor for the lobby safe zone (SAFE_INNER = 40 m radius in noise.js).
+  //    Terrain chunks register their own BVH bodies via onChunkBuilt, but that's async — this
+  //    box gives an immediate fallback so the player always lands even if nexus.gltf or terrain
+  //    builds are delayed.  Size matches SAFE_INNER*2 = 80 so it doesn't extend into variable-
+  //    height terrain beyond the flat zone, which could create a false floor in valleys.
+  {
+    const floor = new Mesh(new BoxGeometry(80, 1, 80), new MeshStandardMaterial());
+    floor.position.set(0, LOBBY_Y - 0.5, 0); // top face at LOBBY_Y = SAFE_HEIGHT = 2
+    scene.add(floor);
+    floor.updateWorldMatrix(true, true);
+    physicsWorld.addBody(floor, false);
+    floor.visible = false; // BVH stores world-space verts; visibility doesn't affect collision
+  }
 
   lobby.onEnterWorld = () => {
     setPlayerPos({ x: 0, y: LOBBY_Y - 1, z: 0 });

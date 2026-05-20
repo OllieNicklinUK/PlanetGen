@@ -63,6 +63,13 @@ export default defineConfig({
     mkcert(),
   ],
   resolve: {
+    // Force a single copy of three and three-mesh-bvh.
+    // viverse-main/packages/viverse/node_modules/ has its own three@0.184 and
+    // three-mesh-bvh@0.9.10 which differ from the root super-three@0.181 and
+    // three-mesh-bvh@0.9.1.  Without dedupe, Rollup bundles two Mesh classes and
+    // instanceof checks in BvhPhysicsWorld.computeBvhEntries always return false,
+    // so no BVH is ever built and the physics world stays empty.
+    dedupe: ['three', 'three-mesh-bvh'],
     alias: {
       '@pmndrs/viverse': resolve('./viverse-main/packages/viverse/src/index.ts'),
     },

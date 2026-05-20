@@ -72,19 +72,22 @@ export class PolygonStreamingManager {
       // Add to scene so the world matrix chain is fully resolved.
       this._scene.add(root);
 
-      // updateWorldMatrix(true,true) skips children whose matrixAutoUpdate=false
-      // (Three.js GLTFLoader sets this on nodes exported with a pre-baked matrix).
-      // updateMatrixWorld(force=true) always propagates through the full hierarchy.
+      // updateWorldMatrix(force=true) always propagates through the full hierarchy,
+      // including nodes whose matrixAutoUpdate=false (common in GLTF exports).
       root.updateMatrixWorld(true);
 
       this._physicsWorld.addBody(root, false);
       this.onColliderReady?.();
 
-      // Hide after physics registration — StaticGeometryGenerator ignores visibility
-      // so ordering doesn't matter, but keep it clear.
+      // Hide after physics registration — BVH stores world-space vertices so
+      // visibility change after addBody is safe.
       root.traverse((child) => { if (child instanceof Mesh) child.visible = false; });
 
       this._colliders.push(root);
+    }).catch((err) => {
+      console.error('[PolygonStreamingManager] Failed to load static collider:', url, err);
+      // Fire the callback anyway so the dual-gate in index.ts can still proceed.
+      this.onColliderReady?.();
     });
   }
 
